@@ -14,6 +14,8 @@ typedef struct {
 	char * values;
 } Problem;
 
+typedef void (*ModelFilteringFunction)(Problem * problem); 
+
 /**
 * Alloue et renvoie un tableau AuthorizedValues à trois dimensions, de taille
 * num_variables * num_variables * NUM_POSSIBILITIES
@@ -98,6 +100,9 @@ char is_affectation_consistent(Problem * problem, int var, char value);
 */
 void affect_variable(Problem * problem, int var, char value);
 
-char backtrack_recursive(Problem * problem, int i);
+void print_solution(Problem * problem);
+
+char backtrack_recursive(Problem * problem, int i,
+						 ModelFilteringFunction function);
 
 #endif

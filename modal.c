@@ -58,6 +58,43 @@ void init_modal_problem(Problem * problem, int num_variables) {
 	init_problem(problem, num_variables * 4);
 }
 
+void print_modal_solution(Problem * problem) {
+	if( problem->num_variables % 4 ) {
+		fprintf(stderr, "Error : Modal problem must have 4n variables (%d)\n",
+				problem->num_variables);
+		exit(-1);
+	}
+
+	for(int k = 0; k < problem->num_variables; k+=4)
+		if( ! problem->values[k + 0] && ! problem->values[k + 1] ) return;
+
+	printf("Model : [");
+
+	char doOnce = TRUE;
+
+	for(int k = 0; k < problem->num_variables; k++) {
+		if( ! problem->values[k] ) continue;
+
+		if( doOnce )
+			doOnce = FALSE;
+		else
+			printf(", ");
+
+		switch(k % 4) {
+			case 0 :
+				printf("H%d", k/4); break;
+			case 1 :
+				printf("H-%d", k/4); break;
+			case 2 :
+				printf("L%d", k/4); break;
+			case 3 :
+				printf("L-%d", k/4); break;
+		}
+	}
+
+	printf("]\n");
+}
+
 int main_test_01(int argc, char ** argv) {
 	Problem problem;
 	init_problem(&problem, 4);
@@ -67,7 +104,7 @@ int main_test_01(int argc, char ** argv) {
 	disable_couple(&problem, 2, 3, TRUE, FALSE);
 	disable_couple(&problem, 3, 0, TRUE, FALSE);
 	
-	char model_exists = backtrack_recursive(&problem, 0);
+	char model_exists = backtrack_recursive(&problem, 0, print_solution);
 
 	printf("model existe ? = %d\n", model_exists);
 
@@ -81,6 +118,8 @@ int main_test_01(int argc, char ** argv) {
 	printf("possible v : %d\n", is_affectation_consistent(&problem, 3, TRUE));
 	printf("possible f : %d\n", is_affectation_consistent(&problem, 3, FALSE));
 	*/
+
+	return 0;
 }
 
 int main_test_modal_01(int argc, char ** argv) {
@@ -93,11 +132,13 @@ int main_test_modal_01(int argc, char ** argv) {
 	constraint_hypothesis_definition_axiom(&problem, 1);
 
 	constraint_arc_relation_01_axiom(&problem, 0, 1, PLUS_EDGE);
-	constraint_arc_relation_01_axiom(&problem, 1, 0, PLUS_EDGE);
+	constraint_arc_relation_01_axiom(&problem, 0, 1, MINUS_EDGE);
 
-	backtrack_recursive(&problem, 0);
+	backtrack_recursive(&problem, 0, print_modal_solution);
 
 	free_problem(&problem);
+
+	return 0;
 }
 
 int main(int argc, char ** argv) {
