@@ -2,129 +2,213 @@
 #include <stdlib.h>
 #include "problem.h"
 
-AuthorizedValues create_authorized_values(int num_variables) {
-	AuthorizedValues a_values = malloc( num_variables * sizeof(char * *) );
+VariableConstraints create_variable_constraints(int num_constraints) {
+	VariableConstraints c = malloc( sizeof( Constraint * ) * num_constraints );
+	for(int k = 0; k < num_constraints; k++)
+		c[k] = NULL;
 
-	for(int i = 0; i < num_variables; i++) {
-		a_values[i] = malloc( num_variables * sizeof(char *) );
-		for(int j = 0; j < num_variables; j++)
-			a_values[i][j] = malloc( NUM_POSSIBILITIES * sizeof(char) );
-	}
-
-	authorize_all(a_values, num_variables);
-
-	return a_values;
+	return c;
 }
 
-void free_authorized_values(AuthorizedValues av, int num_variables) {
-	for(int i = 0; i < num_variables; i++) {
-		for(int j = 0; j < num_variables; j++) {
-			free(av[i][j]);
-		}
-		free(av[i]);
-	}
-	free(av);
-}
+void init_problem(Problem * problem, int num_variables, int num_constraints) {
+	problem->num_variables = num_variables;
+	problem->num_constraints = num_constraints;
 
-void authorize_all(AuthorizedValues av, int num_variables) {
-	for(int i = 0; i < num_variables; i++)
-		for(int j = 0; j < num_variables; j++) {
-			if( i == j ) continue;
-			for(int k = 0; k < NUM_POSSIBILITIES; k++)
-				av[i][j][k] = TRUE;
-		}
-}
+	problem->next_constraint = 0;
 
-void init_problem(Problem * problem, int num_variables) {
-	AuthorizedValues autho_values = create_authorized_values(num_variables);
-	*problem = (Problem) { 
-				 .num_variables = num_variables,
-				 .autho_values = autho_values,
-				 .values = malloc( num_variables * sizeof(char) ) };
+	problem->constraints = malloc( sizeof(Constraint) * num_constraints );
+
+	problem->variables_constraints = malloc( sizeof(VariableConstraints)
+											 * num_variables );
+
+	for(int k = 0; k < num_variables; k++)
+		problem->variables_constraints[k] =
+			create_variable_constraints(num_constraints);
+
+	problem->values = malloc( sizeof(int) * num_variables);
+
+	for(int k = 0; k < num_variables; k++)
+		problem->values[k] = -1;
 }
 
 void free_problem(Problem * problem) {
-	free_authorized_values(problem->autho_values, problem->num_variables);
+	for(int k = 0; k < problem->num_variables; k++)
+		free(problem->variables_constraints[k]);
+
+	free(problem->variables_constraints);
+
+	free(problem->constraints);
+
 	free(problem->values);
 }
 
-char get_value(char * values, char val_a, char val_b) {
-	if( ! val_a ) {
-		if( ! val_b ) return values[0];
-		else return values[1];
-	} else {
-		if( ! val_b ) return values[2];
-		else return values[3];
+void init_constraint(Constraint * constraint, int num_variables, int * variables,
+					 ConstraintEvaluation function, void * data) {
+	constraint->num_variables = num_variables;
+	constraint->variables = malloc( sizeof(int) * num_variables );
+	for(int k = 0; k < num_variables; k++)
+		constraint->variables[k] = variables[k];
+
+	constraint->evaluation_function = function;
+	constraint->function_data = data;
+}
+
+void add_constraint_in_variable_constraints(Constraint * constraint,
+											VariableConstraints vc,
+											int num_constraints) {
+	for(int k = 0; k < num_constraints; k++) {
+		if( vc[k] != NULL ) continue;
+		vc[k] = constraint;
+		return;
 	}
 }
 
-void set_value(char * values, char val_a, char val_b, char value) {	
-	if( ! val_a ) {
-		if( ! val_b ) { values[0] = value; return; }
-		else { values[1] = value; return; }
-	} else {
-		if( ! val_b ) { values[2] = value; return; }
-		else { values[3] = value; return; }
+void add_constraint(Problem * problem, Constraint * constraint) {
+	if( problem->next_constraint >= problem->num_constraints ) {
+		fprintf(stderr, "Error : too much constraints for initial declared number\n");
+		printf("%d\n", problem->num_constraints);
+		exit(-1);
 	}
+
+	problem->constraints[problem->next_constraint] = *constraint;
+
+	for(int var_index = 0; var_index < constraint->num_variables; var_index++) {
+		int var = constraint->variables[var_index];
+		add_constraint_in_variable_constraints(
+			problem->constraints + problem->next_constraint,
+			problem->variables_constraints[var],
+			problem->num_constraints);
+	}
+
+	problem->next_constraint++;
 }
 
-void enable_couple(Problem * problem, int a, int b, char val_a, char val_b) {
-	set_value(problem->autho_values[a][b], val_a, val_b, TRUE);
-	set_value(problem->autho_values[b][a], val_b, val_a, TRUE);
+void add_binary_constraint(Problem * problem, int a, int b,
+						   ConstraintEvaluation function) {
+	Constraint constraint;
+
+	int variables[] = {a, b};
+
+	init_constraint(&constraint, 2, variables,
+					function, problem);
+
+	add_constraint(problem, &constraint);
 }
 
-void disable_couple(Problem * problem, int a, int b, char val_a, char val_b) {
-	set_value(problem->autho_values[a][b], val_a, val_b, FALSE);
-	set_value(problem->autho_values[b][a], val_b, val_a, FALSE);
+char binary_and_constraint_evaluation(int * variables,
+							   		  void * data) {
+	Problem * problem = data;
+	int a = problem->values[variables[0]];
+	int b = problem->values[variables[1]];
+
+	if( a == -1 || b == -1 ) return TRUE;
+
+	return ( a == 1 && b == 1 ); 
 }
 
 void constraint_a_and_b(Problem * problem, int a, int b) {
-	disable_couple(problem, a, b, FALSE, TRUE);
-	disable_couple(problem, a, b, TRUE, FALSE);
-	disable_couple(problem, a, b, FALSE, FALSE);
+	add_binary_constraint(problem, a, b, binary_and_constraint_evaluation);
+}
+
+char binary_or_constraint_evaluation(int * variables,
+							   		 void * data) {
+	Problem * problem = data;
+	int a = problem->values[variables[0]];
+	int b = problem->values[variables[1]];
+
+	if( a == -1 || b == -1 ) return TRUE;
+
+	return ( a == 1 || b == 1 ); 
 }
 
 void constraint_a_or_b(Problem * problem, int a, int b) {
-	disable_couple(problem, a, b, FALSE, FALSE);
+	add_binary_constraint(problem, a, b, binary_or_constraint_evaluation);
+}
+
+char binary_not_or_not_constraint_evaluation(
+									int * variables,
+							   		void * data) {
+	Problem * problem = data;
+	int a = problem->values[variables[0]];
+	int b = problem->values[variables[1]];
+
+	if( a == -1 || b == -1 ) return TRUE;
+
+	return ( a == 0 || b == 0 ); 
 }
 
 void constraint_not_a_or_not_b(Problem * problem, int a, int b) {
-	disable_couple(problem, a, b, TRUE, TRUE);
+	add_binary_constraint(problem, a, b, binary_not_or_not_constraint_evaluation);
+}
+
+char binary_imply_constraint_evaluation(
+							   		int * variables,
+							   		void * data) {
+	Problem * problem = data;
+	int a = problem->values[variables[0]];
+	int b = problem->values[variables[1]];
+
+	if( a == -1 || b == -1 ) return TRUE;
+
+	return ( a == 0 || b == 1 ); 
 }
 
 void constraint_a_imply_b(Problem * problem, int a, int b) {
-	disable_couple(problem, a, b, TRUE, FALSE);
+	add_binary_constraint(problem, a, b, binary_imply_constraint_evaluation);
+}
+
+void add_unary_constraint(Problem * problem, int a,
+						   ConstraintEvaluation function) {
+	Constraint constraint;
+
+	int variables[] = {a};
+
+	init_constraint(&constraint, 1, variables,
+					function, problem);
+
+	add_constraint(problem, &constraint);
+}
+
+char unary_a_constraint_evaluation( int * variables,
+							   		void * data) {
+	Problem * problem = data;
+	int a = problem->values[variables[0]];
+
+	return a; 
 }
 
 void constraint_a(Problem * problem, int a) {
-	for(int var = 0; var < problem->num_variables; var++) {
-		if( var == a ) continue;
-		disable_couple(problem, a, var, FALSE, FALSE);
-		disable_couple(problem, a, var, FALSE, TRUE);
-	}
+	add_unary_constraint(problem, a, unary_a_constraint_evaluation);
+}
+
+char unary_not_constraint_evaluation( int * variables,
+							   		  void * data) {
+	Problem * problem = data;
+	int a = problem->values[variables[0]];
+
+	return a == -1 ? TRUE : !a; 
 }
 
 void constraint_not_a(Problem * problem, int a) {
-	for(int var = 0; var < problem->num_variables; var++) {
-		if( var == a ) continue;
-		disable_couple(problem, a, var, TRUE, FALSE);
-		disable_couple(problem, a, var, TRUE, TRUE);
+	add_unary_constraint(problem, a, unary_not_constraint_evaluation);
+}
+
+char is_affectation_consistent(Problem * problem, int var) {
+	VariableConstraints constraints = problem->variables_constraints[var];
+
+	for(int k = 0; k < problem->num_constraints; k++) {
+		
+		Constraint * constraint = constraints[k];
+
+		if( constraint == NULL ) return TRUE;
+
+		if( ! (*constraint->evaluation_function)(constraint->variables,
+											     constraint->function_data) )
+			return FALSE;		
 	}
-}
-
-char is_couple_authorized(Problem * problem, int a, int b, 
-											   char val_a, char val_b) {
-	return get_value(problem->autho_values[a][b], val_a, val_b);
-}
-
-char is_affectation_consistent(Problem * problem, int var, char value) {
-	for(int other_var = 0; other_var < var; other_var ++)
-		if( ! is_couple_authorized(problem,
-								   other_var, var,
-								   problem->values[other_var],
-								   value) ) return FALSE;
 
 	return TRUE;
+
 }
 
 void affect_variable(Problem * problem, int var, char value) {
@@ -147,20 +231,23 @@ char backtrack_recursive(Problem * problem, int i,
 
 	if( i >= problem->num_variables ) {
 		(*function)(problem);
+		affect_variable(problem, i, UNAFFECTED);
 		return TRUE;
 	}
 
-	if( is_affectation_consistent(problem, i, TRUE) ) {
-		affect_variable(problem, i, TRUE);
+	affect_variable(problem, i, TRUE);
+	if( is_affectation_consistent(problem, i) ) {
 		if( backtrack_recursive(problem, i + 1, function) )
 			model_exists = TRUE;
 	}
 
-	if( is_affectation_consistent(problem, i, FALSE) ) {
-		affect_variable(problem, i, FALSE);
+	affect_variable(problem, i, FALSE);
+	if( is_affectation_consistent(problem, i) ) {
 		if( backtrack_recursive(problem, i + 1, function) )
 			model_exists = TRUE;
 	}
+	
+	affect_variable(problem, i, UNAFFECTED);
 
 	return model_exists;
 }

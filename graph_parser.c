@@ -14,9 +14,11 @@ void parse_graph(Problem * problem, NodeAxiomGenerator node_gen,
 									EdgeAxiomGenerator edge_gen) {
 	char * line = read_line();
 
-	int num_variables = atoi(line);
+	int num_variables, num_constraints;
 
-	init_modal_problem(problem, num_variables);
+	sscanf(line, "%d%*[ \t]%d", &num_variables, &num_constraints);
+
+	init_modal_problem(problem, num_variables, num_constraints);
 
 	applic_node_axiom_generator(problem, node_gen);
 
@@ -147,7 +149,7 @@ void parse_positive_knowledge(Problem * problem, char * line) {
 }
 
 int main_test_01(int argc, char ** argv) {
-	Problem problem;
+	/*Problem problem;
 	init_problem(&problem, 4);
 
 	disable_couple(&problem, 0, 1, TRUE, FALSE);
@@ -159,7 +161,7 @@ int main_test_01(int argc, char ** argv) {
 
 	printf("model existe ? = %d\n", model_exists);
 
-	free_problem(&problem);	
+	free_problem(&problem);	*/
 	
 	/*
 	affect_variable(&problem, 0, TRUE);
@@ -175,7 +177,7 @@ int main_test_01(int argc, char ** argv) {
 
 int main_test_modal_01(int argc, char ** argv) {
 	Problem problem;
-	init_modal_problem(&problem, 3);
+	init_modal_problem(&problem, 3, 9);
 
 	constraint_knowledge_consistence_axiom(&problem, 0);
 	constraint_hypothesis_definition_axiom(&problem, 0);
@@ -199,7 +201,7 @@ int main_test_graph_01(int argc, char ** argv) {
 	Problem problem;
 	
 	parse_graph(&problem, classic_node_constraint_generator,
-						  constraint_arc_relation_01_axiom);
+						  constraint_arc_relation_02_axiom);
 
 	backtrack_recursive(&problem, 0, print_modal_solution);
 
