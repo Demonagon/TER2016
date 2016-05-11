@@ -26,9 +26,9 @@ void classic_node_constraint_generator(Problem * problem, int var) {
 
 void constraint_knowledge_consistence_axiom(Problem * problem, int var) {
 	// #pourlefun
-	constraint_not_a_or_not_b(problem,
+	/*constraint_not_a_or_not_b(problem,
 							  get_hypothesis_index(var),
-							  get_neg_hypothesis_index(var));
+							  get_neg_hypothesis_index(var));*/
 	constraint_not_a_or_not_b(problem,
 							  get_knowledge_index(var),
 							  get_neg_knowledge_index(var));
@@ -136,20 +136,22 @@ void print_modal_solution(Problem * problem) {
 		exit(-1);
 	}
 
-	for(int k = 0; k < problem->num_variables; k+=4)
-		if( ! problem->values[k + 0] && ! problem->values[k + 1] ) return;
+	//for(int k = 0; k < problem->num_variables; k+=4)
+	//	if( ! problem->values[k + 0] && ! problem->values[k + 1] ) return;
 
 	printf("Model : [");
 
 	char doOnce = TRUE;
 
 	for(int k = 0; k < problem->num_variables; k++) {
-		if( ! problem->values[k] ) continue;
+		//if( ! problem->values[k] ) continue;
 
 		if( doOnce )
 			doOnce = FALSE;
 		else
 			printf(", ");
+
+		if( ! problem->values[k] ) printf("-");
 
 		switch(k % 4) {
 			case 0 :

@@ -201,7 +201,7 @@ int main_test_graph_01(int argc, char ** argv) {
 	Problem problem;
 	
 	parse_graph(&problem, classic_node_constraint_generator,
-						  constraint_arc_relation_02_axiom);
+						  constraint_arc_relation_01_axiom);
 
 	backtrack_recursive(&problem, 0, print_modal_solution);
 
