@@ -25,6 +25,6 @@ void constraint_arc_relation_02_axiom(Problem * problem,
 
 void init_modal_problem(Problem * problem, int num_variables, int num_constraints);
 
-void print_modal_solution(Problem * problem);
+void print_modal_solution(Problem * problem, void * user_data);
 
 #endif

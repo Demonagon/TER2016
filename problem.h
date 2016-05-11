@@ -30,7 +30,7 @@ typedef struct {
 	int * values;
 } Problem;
 
-typedef void (*ModelFilteringFunction)(Problem * problem); 
+typedef void (*ModelFilteringFunction)(Problem * problem, void * user_data); 
 
 VariableConstraints create_variable_constraints(int num_constraints);
 
@@ -73,9 +73,10 @@ char is_affectation_consistent(Problem * problem, int var);
 */
 void affect_variable(Problem * problem, int var, char value);
 
-void print_solution(Problem * problem);
+void print_solution(Problem * problem, void * user_data);
 
 char backtrack_recursive(Problem * problem, int i,
-						 ModelFilteringFunction function);
+						 ModelFilteringFunction function,
+						 void * user_data);
 
 #endif

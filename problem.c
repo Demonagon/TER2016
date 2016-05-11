@@ -215,7 +215,9 @@ void affect_variable(Problem * problem, int var, char value) {
 	problem->values[var] = value;
 }
 
-void print_solution(Problem * problem) {
+void print_solution(Problem * problem, void * user_data) {
+	(void) user_data;
+
 	printf("Model : [");
 	for(int k = 0; k < problem->num_variables; k++) {
 		printf("%d", problem->values[k]);
@@ -226,24 +228,25 @@ void print_solution(Problem * problem) {
 }
 
 char backtrack_recursive(Problem * problem, int i,
-						 ModelFilteringFunction function) {
+						 ModelFilteringFunction function,
+						 void * user_data) {
 	char model_exists = FALSE;
 
 	if( i >= problem->num_variables ) {
-		(*function)(problem);
+		(*function)(problem, user_data);
 		affect_variable(problem, i, UNAFFECTED);
 		return TRUE;
 	}
 
 	affect_variable(problem, i, TRUE);
 	if( is_affectation_consistent(problem, i) ) {
-		if( backtrack_recursive(problem, i + 1, function) )
+		if( backtrack_recursive(problem, i + 1, function, user_data) )
 			model_exists = TRUE;
 	}
 
 	affect_variable(problem, i, FALSE);
 	if( is_affectation_consistent(problem, i) ) {
-		if( backtrack_recursive(problem, i + 1, function) )
+		if( backtrack_recursive(problem, i + 1, function, user_data) )
 			model_exists = TRUE;
 	}
 	

@@ -129,7 +129,9 @@ void init_modal_problem(Problem * problem, int num_variables, int num_constraint
 	init_problem(problem, num_variables * 4, num_constraints * 2 + num_variables * 4);
 }
 
-void print_modal_solution(Problem * problem) {
+void print_modal_solution(Problem * problem, void * user_data) {
+	(void) user_data;
+
 	if( problem->num_variables % 4 ) {
 		fprintf(stderr, "Error : Modal problem must have 4n variables (%d)\n",
 				problem->num_variables);
