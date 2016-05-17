@@ -137,6 +137,79 @@ void print_extensions(Extensions * e) {
 	}
 }
 
+
+void print_classic_and_strange_extensions(Extensions *e) {
+	
+	int count_strange = 0,count_classic = 0;
+	printf("Extensions :\n");	
+	
+	printf("Classic extension : \n");	
+	for(int i = 0; i < e->num_extensions; i++) {
+		int * extension = e->extensions[i];
+		if(! is_strange_extension(extension, e->extension_size)){
+			print_one_extension(extension, e->extension_size);
+			count_classic++;	
+		}
+	}
+	printf("\nStrange extension :\n");
+	for(int i = 0; i < e->num_extensions; i++) {
+		int * extension = e->extensions[i];
+		if(is_strange_extension(extension, e->extension_size)){
+			print_one_extension(extension, e->extension_size);
+			count_strange++;	
+		}
+	}
+	printf("\n");
+	printf("nb : %d classic extensions\n",count_classic);
+	printf("nb : %d strange extensions\n",count_strange);
+
+}
+void print_one_extension(int* extension,int size){
+	int doOnce = TRUE;
+	printf("[");
+
+	for(int j = 0; j < size; j++) {
+		if( ! extension[j] ) continue;
+
+		if( doOnce )
+			doOnce = FALSE;
+		else
+			printf(", ");
+
+		//if( ! extension[j] ) printf("-");
+
+		switch(j % 4) {
+			case 0 :
+				printf("H%d", j/4); break;
+			case 1 :
+				printf("H-%d", j/4); break;
+			case 2 :
+				printf("L%d", j/4); break;
+			case 3 :
+				printf("L-%d", j/4); break;
+		}
+	}
+
+	printf("]\n");
+}
+
+int is_strange_extension(int *extension, int size){
+		
+	for(int k = 0; k < size/4; k ++) {
+		int h_index 	= get_hypothesis_index(k);
+		int neg_h_index = get_neg_hypothesis_index(k);
+		int k_index 	= get_knowledge_index(k);
+		int neg_k_index = get_neg_knowledge_index(k);
+
+		if( ! extension[h_index] )
+			if( ! extension[neg_k_index] ) return TRUE;
+		if( ! extension[neg_h_index] )
+			if( ! extension[k_index] ) return TRUE;
+	}	
+	return FALSE;
+	
+}
+
 int main_test_01(int argc, char ** argv) {
 	/*Problem problem;
 	init_problem(&problem, 4);
@@ -215,8 +288,8 @@ int main_test_extensions_01(int argc, char ** argv) {
 	init_extensions(&extensions, 10, problem.num_variables);
 
 	backtrack_recursive(&problem, 0, filter_extensions, &extensions);
-
-	print_extensions(&extensions);
+	printf("End of parsing.\n");
+	print_classic_and_strange_extensions(&extensions);
 
 	free_extensions(&extensions);
 

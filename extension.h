@@ -27,6 +27,10 @@ int is_subextension(int * extension_a, int * extension_b, int size);
 
 void submit_extension(Extensions * e, int * extension);
 
+int is_strange_extension(int *extension, int size);
+
 void print_extensions(Extensions * e);
+void print_classic_and_strange_extensions(Extensions *e);
+void print_one_extension(int* extension, int size);
 
 #endif
